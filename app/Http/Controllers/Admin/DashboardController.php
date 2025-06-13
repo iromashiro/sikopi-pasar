@@ -3,22 +3,41 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Services\ReportService;
+use App\Models\Payment;
+use App\Models\Levy;
+use App\Models\Trader;
+use App\Models\Kiosk;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function __construct()
+    public function index(Request $request)
     {
-        $this->middleware('role:Admin|SuperAdmin');
-    }
+        $year = $request->get('year', now()->year);
 
-    public function __invoke(ReportService $rs)
-    {
-        $year = now()->year;
-        $trend = $rs->collectionVsTarget($year);
-        $overdue = $rs->overdue()->count();
-        $today   = $rs->daily(now())->where('day', now()->toDateString())->first()->total ?? 0;
+        // Today's collection
+        $today = Payment::whereDate('paid_at', today())->sum('amount');
 
-        return view('admin.dashboard', compact('trend', 'overdue', 'today', 'year'));
+        // Overdue levies count
+        $overdue = Levy::where('status', 'overdue')->count();
+
+        // Monthly trend data for chart
+        $trend = collect();
+        for ($month = 1; $month <= 12; $month++) {
+            $collected = Payment::whereYear('paid_at', $year)
+                ->whereMonth('paid_at', $month)
+                ->sum('amount');
+
+            $target = config('levy.target_monthly', 100000000); // 100M default
+
+            $trend->push([
+                'month' => $month,
+                'collected' => $collected,
+                'target' => $target,
+            ]);
+        }
+
+        return view('admin.dashboard', compact('today', 'overdue', 'trend', 'year'));
     }
 }

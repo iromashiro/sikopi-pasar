@@ -10,11 +10,6 @@ use Illuminate\Validation\ValidationException;
 
 class PaymentController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(['role:Collector|Admin|SuperAdmin']);
-    }
-
     public function index()
     {
         $payments = \App\Models\Payment::with('levy.traderKiosk.trader', 'levy.traderKiosk.kiosk')

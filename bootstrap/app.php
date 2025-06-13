@@ -1,18 +1,22 @@
 <?php
 
 use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
 
-$app = Application::configure(basePath: dirname(__DIR__))
-    // Bind http & console kernels (Laravel 11 “single kernel” default)
+return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        using: __DIR__ . '/../routes/web.php',
+        web: __DIR__ . '/../routes/web.php',
         commands: __DIR__ . '/../routes/console.php',
-        api: __DIR__ . '/../routes/api.php'
+        health: '/up',
     )
-    ->withMiddleware(function ($middleware) {
-        // global HTTP middleware additions (none beyond default)
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+        ]);
     })
-    ->withExceptions()
-    ->create();
-
-return $app;
+    ->withExceptions(function (Exceptions $exceptions): void {
+        //
+    })->create();

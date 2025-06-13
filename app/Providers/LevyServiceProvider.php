@@ -14,11 +14,14 @@ class LevyServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Bind interface → concrete strategy using latest formula (cached 1h)
         $this->app->bind(LevyStrategyInterface::class, function () {
-            $formula = Cache::remember('current_levy_formula', 3600, function () {
-                return LevyFormula::orderByDesc('version')->first();
-            });
+            $formula = Cache::remember(
+                'current_levy_formula',
+                3600,
+                fn() =>
+                LevyFormula::orderByDesc('version')->first()
+            );
+
             return new BasicFormulaStrategy($formula);
         });
     }

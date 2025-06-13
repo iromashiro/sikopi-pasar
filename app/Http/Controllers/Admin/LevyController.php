@@ -12,11 +12,6 @@ use Illuminate\Support\Facades\Gate;
 
 class LevyController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(['role:Admin|SuperAdmin']);
-    }
-
     public function index()
     {
         $levies = Levy::with('traderKiosk.trader', 'traderKiosk.kiosk')

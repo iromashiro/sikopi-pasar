@@ -8,14 +8,10 @@ use App\Models\Market;
 use App\Http\Requests\StoreKioskRequest;
 use App\Http\Requests\UpdateKioskRequest;
 use App\Services\KioskService;
+use Illuminate\Support\Facades\Cache;
 
 class KioskController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(['role:Admin|SuperAdmin']);
-    }
-
     public function index()
     {
         $kiosks = Kiosk::with('market')->latest()->paginate(25);

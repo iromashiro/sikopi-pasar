@@ -10,10 +10,6 @@ use App\Services\MarketService;
 
 class MarketController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(['role:Admin|SuperAdmin']);
-    }
 
     public function index(MarketService $service)
     {

@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('levies', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('trader_kiosk_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('trader_kiosk_id')->constrained('trader_kiosk')->cascadeOnDelete();
             $table->char('period_month', 6)->index();        // yyyymm
             $table->date('due_date');
             $table->unsignedBigInteger('amount');            // stored in rupiah
