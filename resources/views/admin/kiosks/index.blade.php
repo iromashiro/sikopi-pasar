@@ -24,9 +24,6 @@
                     <div class="col-md-3">
                         <select class="form-select" x-model="marketFilter" @change="filterKiosks()">
                             <option value="">Semua Pasar</option>
-                            @foreach($markets as $market)
-                            <option value="{{ $market->id }}">{{ $market->name }}</option>
-                            @endforeach
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -70,15 +67,17 @@
                         </div>
                         <div class="card-body">
                             <p class="card-text">
-                                <strong>Pasar:</strong> <span x-text="kiosk.market?.name"></span><br>
+                                <strong>Pasar:</strong> <span x-text="kiosk.market?.name || 'N/A'"></span><br>
                                 <strong>Kategori:</strong> <span x-text="kiosk.category"></span><br>
                                 <strong>Luas:</strong> <span x-text="kiosk.area_m2"></span> m²
                             </p>
 
-                            <template x-if="kiosk.current_trader">
+                            <!-- Update untuk menggunakan current_assignment -->
+                            <template x-if="kiosk.current_assignment?.trader">
                                 <div class="alert alert-info py-2">
                                     <small>
-                                        <strong>Pedagang:</strong> <span x-text="kiosk.current_trader.name"></span>
+                                        <strong>Pedagang:</strong>
+                                        <span x-text="kiosk.current_assignment.trader.name"></span>
                                     </small>
                                 </div>
                             </template>
@@ -98,6 +97,13 @@
             </template>
         </div>
 
+        <!-- Empty State -->
+        <div x-show="filteredKiosks.length === 0" class="text-center py-5">
+            <i class="bi bi-shop fs-1 text-muted"></i>
+            <h4 class="text-muted mt-3">Tidak ada kios ditemukan</h4>
+            <p class="text-muted">Coba ubah filter pencarian atau tambah kios baru</p>
+        </div>
+
         <!-- Pagination -->
         <div class="d-flex justify-content-center mt-4">
             {{ $kiosks->links() }}
@@ -106,36 +112,53 @@
         <!-- Add/Edit Kiosk Modal -->
         <x-modal id="addKioskModal" title="Tambah Kios Baru">
             <form @submit.prevent="submitKiosk()">
-                <x-form.select name="market_id" label="Pasar" required
-                    :options="$markets->pluck('name', 'id')->toArray()" x-model="form.market_id" />
+                <div class="mb-3">
+                    <label for="market_id" class="form-label">
+                        Pasar <span class="text-danger">*</span>
+                    </label>
+                    <select class="form-select" id="market_id" x-model="form.market_id" required>
+                        <option value="">Pilih Pasar</option>
+                    </select>
+                </div>
 
                 <x-form.input name="kiosk_no" label="Nomor Kios" required x-model="form.kiosk_no" />
 
-                <x-form.select name="category" label="Kategori" required :options="[
-                                   'Sayuran' => 'Sayuran',
-                                   'Buah-buahan' => 'Buah-buahan',
-                                   'Daging' => 'Daging',
-                                   'Ikan' => 'Ikan',
-                                   'Bumbu' => 'Bumbu',
-                                   'Kue' => 'Kue',
-                                   'Pakaian' => 'Pakaian',
-                                   'Elektronik' => 'Elektronik'
-                               ]" x-model="form.category" />
+                <div class="mb-3">
+                    <label for="category" class="form-label">
+                        Kategori <span class="text-danger">*</span>
+                    </label>
+                    <select class="form-select" id="category" x-model="form.category" required>
+                        <option value="">Pilih Kategori</option>
+                        <option value="Sayuran">Sayuran</option>
+                        <option value="Buah-buahan">Buah-buahan</option>
+                        <option value="Daging">Daging</option>
+                        <option value="Ikan">Ikan</option>
+                        <option value="Bumbu">Bumbu</option>
+                        <option value="Kue">Kue</option>
+                        <option value="Pakaian">Pakaian</option>
+                        <option value="Elektronik">Elektronik</option>
+                    </select>
+                </div>
 
                 <x-form.input name="area_m2" label="Luas (m²)" type="number" required x-model="form.area_m2" min="1"
                     max="100" />
 
-                <x-form.select name="status" label="Status" required :options="[
-                                   'available' => 'Tersedia',
-                                   'occupied' => 'Terisi',
-                                   'inactive' => 'Tidak Aktif'
-                               ]" x-model="form.status" />
+                <div class="mb-3">
+                    <label for="status" class="form-label">
+                        Status <span class="text-danger">*</span>
+                    </label>
+                    <select class="form-select" id="status" x-model="form.status" required>
+                        <option value="available">Tersedia</option>
+                        <option value="occupied">Terisi</option>
+                        <option value="inactive">Tidak Aktif</option>
+                    </select>
+                </div>
 
                 <div class="d-flex justify-content-end gap-2">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary" :disabled="loading">
                         <span x-show="loading" class="spinner-border spinner-border-sm me-2"></span>
-                        Simpan
+                        <span x-text="editMode ? 'Update' : 'Simpan'"></span>
                     </button>
                 </div>
             </form>
@@ -232,19 +255,42 @@
                             body: JSON.stringify(this.form)
                         });
 
-                        if (response.ok) {
+                        const result = await response.json();
+
+                        if (response.ok && result.success) {
                             location.reload();
+                        } else {
+                            alert('Error: ' + (result.error || 'Terjadi kesalahan'));
                         }
                     } catch (error) {
                         console.error('Error:', error);
+                        alert('Terjadi kesalahan saat menyimpan data');
                     } finally {
                         this.loading = false;
                     }
                 },
 
-                deleteKiosk(kiosk) {
+                async deleteKiosk(kiosk) {
                     if (confirm(`Hapus kios ${kiosk.kiosk_no}?`)) {
-                        // Implementation
+                        try {
+                            const response = await fetch(`/admin/kiosks/${kiosk.id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                }
+                            });
+
+                            const result = await response.json();
+
+                            if (response.ok && result.success) {
+                                location.reload();
+                            } else {
+                                alert('Error: ' + (result.error || 'Terjadi kesalahan'));
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Terjadi kesalahan saat menghapus data');
+                        }
                     }
                 }
             }
@@ -252,7 +298,10 @@
 
         // Reset form when modal is hidden
         document.getElementById('addKioskModal').addEventListener('hidden.bs.modal', function() {
-            Alpine.store('kiosksPage').resetForm();
+            const component = Alpine.$data(document.querySelector('[x-data="kiosksPage()"]'));
+            if (component) {
+                component.resetForm();
+            }
         });
     </script>
     @endpush
