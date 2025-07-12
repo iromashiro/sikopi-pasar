@@ -1,6 +1,18 @@
 ## Project Codename: "SIKOPI PASAR"
 ## Date Created: 6/12/2025
 
+## Table of Contents
+
+1. [Executive Summary](#executive-summary)
+2. [System Context](#system-context)  
+3. [Container Architecture](#container-architecture)
+4. [Component Design](#component-design)
+5. [Data Architecture](#data-architecture)
+6. [API Design](#api-design)
+7. [Security Architecture](#security-architecture)
+8. [Scalability and Performance](#scalability-performance)
+9. [Implementation Guidance](#implementation-guidance)
+
 ---
 
 ## 1. Project Overview
